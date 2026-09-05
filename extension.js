@@ -3,10 +3,11 @@
 
     class MultiplayerRooms {
         constructor() {
-            this.apiUrl = "https://sign-in-up-api.inakuu69.workers.dev";
+            // Runtime API URL is also an example by default.
+            // Set this with the "set multiplayer API URL" block.
+            this.apiUrl = "https://example.com/api";
 
             this.token = "";
-
             this.userId = "";
             this.username = "";
 
@@ -35,7 +36,10 @@
 
         setError(message) {
             this.lastError = String(message || "");
-            console.error("[Multiplayer]", this.lastError);
+            console.error(
+                "[Multiplayer Rooms]",
+                this.lastError
+            );
         }
 
         setStatus(message) {
@@ -92,7 +96,7 @@
         requireLogin() {
             if (!this.token) {
                 this.setError(
-                    "You must be logged in first"
+                    "You must set a multiplayer token first"
                 );
 
                 return false;
@@ -101,8 +105,67 @@
             return true;
         }
 
+        normalizeMessage(raw) {
+            return {
+                id: Number(raw.id || 0),
+
+                roomId:
+                    raw.room_id ||
+                    raw.roomId ||
+                    "",
+
+                userId:
+                    raw.user_id ||
+                    raw.userId ||
+                    "",
+
+                username:
+                    raw.username ||
+                    "",
+
+                message:
+                    raw.message ||
+                    "",
+
+                createdAt:
+                    raw.created_at ||
+                    raw.createdAt ||
+                    0
+            };
+        }
+
+        getPlayer(index) {
+            const number =
+                Math.floor(Number(index));
+
+            if (
+                !Number.isFinite(number) ||
+                number < 1 ||
+                number > this.players.length
+            ) {
+                return null;
+            }
+
+            return this.players[number - 1];
+        }
+
+        getMessage(index) {
+            const number =
+                Math.floor(Number(index));
+
+            if (
+                !Number.isFinite(number) ||
+                number < 1 ||
+                number > this.messages.length
+            ) {
+                return null;
+            }
+
+            return this.messages[number - 1];
+        }
+
         /* =====================================================
-           EXTENSION BLOCKS
+           BLOCK INFORMATION
            ===================================================== */
 
         getInfo() {
@@ -117,190 +180,240 @@
 
                 blocks: [
 
-                    /* -----------------------------------------
+                    /* =========================================
                        API
-                       ----------------------------------------- */
+                       ========================================= */
 
                     {
                         opcode: "setApiUrl",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "set multiplayer API URL to [URL]",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "set multiplayer API URL to [URL]",
                         arguments: {
                             URL: {
-                                type: Scratch.ArgumentType.STRING,
+                                type:
+                                    Scratch.ArgumentType.STRING,
                                 defaultValue:
-                                    "https://sign-in-up-api.inakuu69.workers.dev"
+                                    "https://example.com/api"
                             }
                         }
                     },
 
                     {
                         opcode: "apiUrlReporter",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "multiplayer API URL"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "multiplayer API URL"
                     },
 
-                    /* -----------------------------------------
-                       AUTH
-                       ----------------------------------------- */
+                    /* =========================================
+                       AUTHENTICATION
+                       ========================================= */
 
                     {
                         opcode: "setToken",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "set multiplayer token to [TOKEN]",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "set multiplayer token to [TOKEN]",
                         arguments: {
                             TOKEN: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: ""
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "ExampleToken123"
                             }
                         }
                     },
 
                     {
                         opcode: "setUsername",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "set my username to [USERNAME]",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "set my username to [USERNAME]",
                         arguments: {
                             USERNAME: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: "Player"
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "ExamplePlayer"
                             }
                         }
                     },
 
                     {
                         opcode: "setUserId",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "set my user ID to [ID]",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "set my user ID to [ID]",
                         arguments: {
                             ID: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: ""
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "example-user-id"
                             }
                         }
                     },
 
                     {
                         opcode: "token",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "multiplayer token"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "multiplayer token"
                     },
 
                     {
                         opcode: "username",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "my username"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "my username"
                     },
 
                     {
                         opcode: "userId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "my user ID"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "my user ID"
                     },
 
-                    /* -----------------------------------------
-                       ROOM CREATION
-                       ----------------------------------------- */
+                    /* =========================================
+                       ROOMS
+                       ========================================= */
 
                     {
                         opcode: "createRoom",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "create multiplayer room"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "create multiplayer room"
                     },
 
                     {
                         opcode: "createRoomAndWait",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "create multiplayer room and wait"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "create multiplayer room and wait"
                     },
-
-                    {
-                        opcode: "roomId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "room ID"
-                    },
-
-                    {
-                        opcode: "roomCode",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "room code"
-                    },
-
-                    {
-                        opcode: "creatorId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "room creator ID"
-                    },
-
-                    /* -----------------------------------------
-                       JOINING
-                       ----------------------------------------- */
 
                     {
                         opcode: "joinRoom",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "join room [CODE]",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "join room [CODE]",
                         arguments: {
                             CODE: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: "ABC123"
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "ABC123"
                             }
                         }
                     },
 
                     {
                         opcode: "joinRoomAndWait",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "join room [CODE] and wait",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "join room [CODE] and wait",
                         arguments: {
                             CODE: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: "ABC123"
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "ABC123"
                             }
                         }
                     },
 
                     {
                         opcode: "leaveRoom",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "leave multiplayer room"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "leave multiplayer room"
                     },
 
                     {
                         opcode: "inRoom",
-                        blockType: Scratch.BlockType.BOOLEAN,
-                        text: "in a multiplayer room?"
+                        blockType:
+                            Scratch.BlockType.BOOLEAN,
+                        text:
+                            "in a multiplayer room?"
                     },
 
-                    /* -----------------------------------------
+                    {
+                        opcode: "roomId",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "room ID"
+                    },
+
+                    {
+                        opcode: "roomCode",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "room code"
+                    },
+
+                    {
+                        opcode: "creatorId",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "room creator ID"
+                    },
+
+                    /* =========================================
                        PLAYERS
-                       ----------------------------------------- */
+                       ========================================= */
 
                     {
                         opcode: "refreshPlayers",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "refresh room players"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "refresh room players"
                     },
 
                     {
                         opcode: "refreshPlayersAndWait",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "refresh room players and wait"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "refresh room players and wait"
                     },
 
                     {
                         opcode: "playerCount",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "player count"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "player count"
                     },
 
                     {
                         opcode: "playerUsername",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "username of player [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "username of player [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -308,11 +421,14 @@
 
                     {
                         opcode: "playerId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "ID of player [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "ID of player [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -320,11 +436,14 @@
 
                     {
                         opcode: "playerJoinedAt",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "join time of player [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "join time of player [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -332,69 +451,89 @@
 
                     {
                         opcode: "playerLastSeen",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "last seen of player [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "last seen of player [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
                     },
 
-                    /* -----------------------------------------
+                    /* =========================================
                        CHAT
-                       ----------------------------------------- */
+                       ========================================= */
 
                     {
                         opcode: "sendMessage",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "send chat message [MESSAGE]",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "send chat message [MESSAGE]",
                         arguments: {
                             MESSAGE: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: "Hello!"
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "Hello, world!"
                             }
                         }
                     },
 
                     {
                         opcode: "sendMessageAndWait",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "send chat message [MESSAGE] and wait",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "send chat message [MESSAGE] and wait",
                         arguments: {
                             MESSAGE: {
-                                type: Scratch.ArgumentType.STRING,
-                                defaultValue: "Hello!"
+                                type:
+                                    Scratch.ArgumentType.STRING,
+                                defaultValue:
+                                    "Hello, world!"
                             }
                         }
                     },
 
                     {
                         opcode: "refreshMessages",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "get new chat messages"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "get new chat messages"
                     },
 
                     {
                         opcode: "refreshMessagesAndWait",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "get new chat messages and wait"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "get new chat messages and wait"
                     },
 
                     {
                         opcode: "messageCount",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "chat message count"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "chat message count"
                     },
 
                     {
                         opcode: "messageText",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "text of chat message [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "text of chat message [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -402,11 +541,14 @@
 
                     {
                         opcode: "messageUsername",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "sender of chat message [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "sender of chat message [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -414,11 +556,14 @@
 
                     {
                         opcode: "messageUserId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "sender ID of chat message [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "sender ID of chat message [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -426,11 +571,14 @@
 
                     {
                         opcode: "messageId",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "ID of chat message [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "ID of chat message [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -438,11 +586,14 @@
 
                     {
                         opcode: "messageCreatedAt",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "time of chat message [NUMBER]",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "time of chat message [NUMBER]",
                         arguments: {
                             NUMBER: {
-                                type: Scratch.ArgumentType.NUMBER,
+                                type:
+                                    Scratch.ArgumentType.NUMBER,
                                 defaultValue: 1
                             }
                         }
@@ -450,86 +601,110 @@
 
                     {
                         opcode: "latestMessage",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "latest chat message"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "latest chat message"
                     },
 
                     {
                         opcode: "latestMessageSender",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "latest chat sender"
-                    },
-
-                    /* -----------------------------------------
-                       HEARTBEAT
-                       ----------------------------------------- */
-
-                    {
-                        opcode: "heartbeat",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "send room heartbeat"
-                    },
-
-                    {
-                        opcode: "heartbeatAndWait",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "send room heartbeat and wait"
-                    },
-
-                    /* -----------------------------------------
-                       AUTOMATIC UPDATES
-                       ----------------------------------------- */
-
-                    {
-                        opcode: "startAutoHeartbeat",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "start automatic room heartbeat"
-                    },
-
-                    {
-                        opcode: "stopAutoHeartbeat",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "stop automatic room heartbeat"
-                    },
-
-                    {
-                        opcode: "startAutoMessages",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "start automatic chat updates"
-                    },
-
-                    {
-                        opcode: "stopAutoMessages",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "stop automatic chat updates"
-                    },
-
-                    /* -----------------------------------------
-                       STATUS
-                       ----------------------------------------- */
-
-                    {
-                        opcode: "lastError",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "multiplayer error"
-                    },
-
-                    {
-                        opcode: "lastStatus",
-                        blockType: Scratch.BlockType.REPORTER,
-                        text: "multiplayer status"
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "latest chat sender"
                     },
 
                     {
                         opcode: "clearMessages",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "clear local chat messages"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "clear local chat messages"
+                    },
+
+                    /* =========================================
+                       HEARTBEAT
+                       ========================================= */
+
+                    {
+                        opcode: "heartbeat",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "send room heartbeat"
+                    },
+
+                    {
+                        opcode: "heartbeatAndWait",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "send room heartbeat and wait"
+                    },
+
+                    {
+                        opcode: "startAutoHeartbeat",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "start automatic room heartbeat"
+                    },
+
+                    {
+                        opcode: "stopAutoHeartbeat",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "stop automatic room heartbeat"
+                    },
+
+                    /* =========================================
+                       AUTOMATIC CHAT
+                       ========================================= */
+
+                    {
+                        opcode: "startAutoMessages",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "start automatic chat updates"
+                    },
+
+                    {
+                        opcode: "stopAutoMessages",
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "stop automatic chat updates"
+                    },
+
+                    /* =========================================
+                       STATUS
+                       ========================================= */
+
+                    {
+                        opcode: "lastError",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "multiplayer error"
+                    },
+
+                    {
+                        opcode: "lastStatus",
+                        blockType:
+                            Scratch.BlockType.REPORTER,
+                        text:
+                            "multiplayer status"
                     },
 
                     {
                         opcode: "clearError",
-                        blockType: Scratch.BlockType.COMMAND,
-                        text: "clear multiplayer error"
+                        blockType:
+                            Scratch.BlockType.COMMAND,
+                        text:
+                            "clear multiplayer error"
                     }
                 ]
             };
@@ -541,8 +716,13 @@
 
         setApiUrl(args) {
             this.apiUrl =
-                String(args.URL || "").trim()
+                String(args.URL || "")
+                    .trim()
                     .replace(/\/+$/, "");
+
+            this.setStatus(
+                "API URL changed"
+            );
         }
 
         apiUrlReporter() {
@@ -555,7 +735,8 @@
 
         setToken(args) {
             this.token =
-                String(args.TOKEN || "").trim();
+                String(args.TOKEN || "")
+                    .trim();
 
             this.setStatus(
                 this.token
@@ -567,11 +748,19 @@
         setUsername(args) {
             this.username =
                 String(args.USERNAME || "");
+
+            this.setStatus(
+                "Username set"
+            );
         }
 
         setUserId(args) {
             this.userId =
                 String(args.ID || "");
+
+            this.setStatus(
+                "User ID set"
+            );
         }
 
         token() {
@@ -605,7 +794,7 @@
                     );
 
                 const room =
-                    data.room;
+                    data.room || {};
 
                 this.roomId =
                     room.id || "";
@@ -621,7 +810,7 @@
                 this.lastMessageId = 0;
 
                 this.setStatus(
-                    "Room created: " +
+                    "Created room " +
                     this.roomCode
                 );
 
@@ -676,13 +865,13 @@
                         {
                             method: "POST",
                             body: JSON.stringify({
-                                code
+                                code: code
                             })
                         }
                     );
 
                 const room =
-                    data.room;
+                    data.room || {};
 
                 this.roomId =
                     room.id || "";
@@ -698,7 +887,7 @@
                 this.lastMessageId = 0;
 
                 this.setStatus(
-                    "Joined room: " +
+                    "Joined room " +
                     this.roomCode
                 );
 
@@ -714,11 +903,15 @@
         }
 
         /* =====================================================
-           LEAVE
+           LEAVE ROOM
            ===================================================== */
 
         async leaveRoom() {
             if (!this.roomId) {
+                this.setError(
+                    "You are not in a room"
+                );
+
                 return;
             }
 
@@ -735,7 +928,8 @@
                     {
                         method: "POST",
                         body: JSON.stringify({
-                            roomId: oldRoomId
+                            roomId:
+                                oldRoomId
                         })
                     }
                 );
@@ -746,6 +940,7 @@
 
                 this.players = [];
                 this.messages = [];
+
                 this.lastMessageId = 0;
 
                 this.setStatus(
@@ -822,26 +1017,11 @@
             return this.players.length;
         }
 
-        getPlayer(index) {
-            const number =
-                Math.floor(
-                    Number(index)
-                );
-
-            if (
-                !Number.isFinite(number) ||
-                number < 1 ||
-                number > this.players.length
-            ) {
-                return null;
-            }
-
-            return this.players[number - 1];
-        }
-
         playerUsername(args) {
             const player =
-                this.getPlayer(args.NUMBER);
+                this.getPlayer(
+                    args.NUMBER
+                );
 
             return player
                 ? player.username || ""
@@ -850,7 +1030,9 @@
 
         playerId(args) {
             const player =
-                this.getPlayer(args.NUMBER);
+                this.getPlayer(
+                    args.NUMBER
+                );
 
             return player
                 ? player.id || ""
@@ -859,7 +1041,9 @@
 
         playerJoinedAt(args) {
             const player =
-                this.getPlayer(args.NUMBER);
+                this.getPlayer(
+                    args.NUMBER
+                );
 
             return player
                 ? player.joined_at || ""
@@ -868,7 +1052,9 @@
 
         playerLastSeen(args) {
             const player =
-                this.getPlayer(args.NUMBER);
+                this.getPlayer(
+                    args.NUMBER
+                );
 
             return player
                 ? player.last_seen || ""
@@ -904,6 +1090,14 @@
                 return;
             }
 
+            if (message.length > 500) {
+                this.setError(
+                    "Message cannot exceed 500 characters"
+                );
+
+                return;
+            }
+
             try {
                 const data =
                     await this.request(
@@ -913,7 +1107,8 @@
                             body: JSON.stringify({
                                 roomId:
                                     this.roomId,
-                                message
+                                message:
+                                    message
                             })
                         }
                     );
@@ -924,7 +1119,18 @@
                             data.message
                         );
 
-                    this.messages.push(msg);
+                    const exists =
+                        this.messages.some(
+                            existing =>
+                                existing.id ===
+                                msg.id
+                        );
+
+                    if (!exists) {
+                        this.messages.push(
+                            msg
+                        );
+                    }
 
                     if (
                         msg.id >
@@ -947,6 +1153,10 @@
             await this.sendMessage(args);
         }
 
+        /* =====================================================
+           GET CHAT MESSAGES
+           ===================================================== */
+
         async refreshMessages() {
             if (!this.requireLogin()) {
                 return;
@@ -962,7 +1172,8 @@
 
             try {
                 const path =
-                    "/rooms/messages?roomId=" +
+                    "/rooms/messages" +
+                    "?roomId=" +
                     encodeURIComponent(
                         this.roomId
                     ) +
@@ -990,14 +1201,14 @@
                             raw
                         );
 
-                    const alreadyExists =
+                    const exists =
                         this.messages.some(
                             existing =>
                                 existing.id ===
                                 msg.id
                         );
 
-                    if (!alreadyExists) {
+                    if (!exists) {
                         this.messages.push(
                             msg
                         );
@@ -1013,7 +1224,8 @@
                 }
 
                 /*
-                 * Keep the local list from growing forever.
+                 * Prevent the browser from keeping
+                 * an unlimited local chat history.
                  */
                 if (
                     this.messages.length >
@@ -1038,58 +1250,8 @@
             await this.refreshMessages();
         }
 
-        normalizeMessage(raw) {
-            return {
-                id: Number(
-                    raw.id || 0
-                ),
-
-                roomId:
-                    raw.room_id ||
-                    raw.roomId ||
-                    "",
-
-                userId:
-                    raw.user_id ||
-                    raw.userId ||
-                    "",
-
-                username:
-                    raw.username ||
-                    "",
-
-                message:
-                    raw.message ||
-                    "",
-
-                createdAt:
-                    raw.created_at ||
-                    raw.createdAt ||
-                    0
-            };
-        }
-
         messageCount() {
             return this.messages.length;
-        }
-
-        getMessage(index) {
-            const number =
-                Math.floor(
-                    Number(index)
-                );
-
-            if (
-                !Number.isFinite(number) ||
-                number < 1 ||
-                number > this.messages.length
-            ) {
-                return null;
-            }
-
-            return this.messages[
-                number - 1
-            ];
         }
 
         messageText(args) {
@@ -1176,6 +1338,10 @@
         clearMessages() {
             this.messages = [];
             this.lastMessageId = 0;
+
+            this.setStatus(
+                "Local chat messages cleared"
+            );
         }
 
         /* =====================================================
@@ -1183,7 +1349,7 @@
            ===================================================== */
 
         async heartbeat() {
-            if (!this.requireLogin()) {
+            if (!this.token) {
                 return;
             }
 
@@ -1225,11 +1391,10 @@
             this.autoHeartbeat = true;
 
             /*
-             * Backend considers someone inactive
-             * after 30 seconds.
+             * The backend removes players after
+             * 30 seconds of inactivity.
              *
-             * Sending every 10 seconds gives
-             * plenty of safety margin.
+             * We send a heartbeat every 10 seconds.
              */
 
             this.heartbeatTimer =
@@ -1237,8 +1402,8 @@
                     () => {
                         if (
                             this.autoHeartbeat &&
-                            this.roomId &&
-                            this.token
+                            this.token &&
+                            this.roomId
                         ) {
                             this.heartbeat();
                         }
@@ -1282,7 +1447,8 @@
             this.autoMessages = true;
 
             /*
-             * Poll every 1.5 seconds.
+             * Check for new messages every
+             * 1.5 seconds.
              */
 
             this.messageTimer =
@@ -1290,8 +1456,8 @@
                     () => {
                         if (
                             this.autoMessages &&
-                            this.roomId &&
-                            this.token
+                            this.token &&
+                            this.roomId
                         ) {
                             this.refreshMessages();
                         }
