@@ -3,10 +3,9 @@
 
     class MultiplayerRooms {
         constructor() {
-            // Runtime API URL is also an example by default.
-            // Set this with the "set multiplayer API URL" block.
             this.apiUrl = "https://example.com/api";
 
+            // Separate multiplayer authentication.
             this.token = "";
             this.userId = "";
             this.username = "";
@@ -36,107 +35,295 @@
 
         setError(message) {
             this.lastError = String(message || "");
-            console.error(
-                "[Multiplayer Rooms]",
-                this.lastError
-            );
+            console.error("[Multiplayer Rooms]", this.lastError);
         }
 
         setStatus(message) {
             this.lastStatus = String(message || "");
+            console.log("[Multiplayer Rooms]", this.lastStatus);
         }
 
-        async request(path, options = {}) {
-            const headers = {
-                "Content-Type": "application/json"
-            };
+        clearError() {
+            this.lastError = "";
+        }
 
-            if (this.token) {
-                headers["Authorization"] =
-                    "Bearer " + this.token;
+        cleanString(value) {
+            if (value === null || value === undefined) {
+                return "";
             }
 
-            const response = await fetch(
-                this.apiUrl.replace(/\/+$/, "") + path,
-                {
-                    ...options,
-                    headers: {
-                        ...headers,
-                        ...(options.headers || {})
-                    }
+            return String(value).trim();
+        }
+
+        firstValue(object, keys, fallback = "") {
+            if (!object || typeof object !== "object") {
+                return fallback;
+            }
+
+            for (const key of keys) {
+                if (
+                    object[key] !== undefined &&
+                    object[key] !== null &&
+                    object[key] !== ""
+                ) {
+                    return object[key];
                 }
-            );
+            }
 
-            let data;
+            return fallback;
+        }
 
-            try {
-                data = await response.json();
-            } catch {
-                data = {
-                    success: false,
-                    error: "Server returned invalid JSON"
+        normalizeRoom(raw) {
+            if (!raw || typeof raw !== "object") {
+                return {
+                    id: "",
+                    code: "",
+                    creatorId: ""
                 };
             }
 
-            if (!response.ok || data.success === false) {
-                const error =
-                    data.error ||
-                    "Request failed";
+            return {
+                id: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "id",
+                            "roomId",
+                            "room_id"
+                        ]
+                    )
+                ),
 
-                this.setError(error);
+                code: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "code",
+                            "roomCode",
+                            "room_code"
+                        ]
+                    )
+                ).toUpperCase(),
 
-                throw new Error(error);
-            }
-
-            this.lastError = "";
-
-            return data;
+                creatorId: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "creatorId",
+                            "creator_id",
+                            "creator",
+                            "ownerId",
+                            "owner_id"
+                        ]
+                    )
+                )
+            };
         }
 
-        requireLogin() {
-            if (!this.token) {
-                this.setError(
-                    "You must set a multiplayer token first"
-                );
-
-                return false;
+        normalizePlayer(raw) {
+            if (!raw || typeof raw !== "object") {
+                return {
+                    id: "",
+                    username: "",
+                    joined_at: "",
+                    last_seen: ""
+                };
             }
 
-            return true;
+            return {
+                id: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "id",
+                            "userId",
+                            "user_id"
+                        ]
+                    )
+                ),
+
+                username: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "username",
+                            "name"
+                        ]
+                    )
+                ),
+
+                joined_at: this.firstValue(
+                    raw,
+                    [
+                        "joined_at",
+                        "joinedAt",
+                        "joinTime",
+                        "join_time"
+                    ],
+                    ""
+                ),
+
+                last_seen: this.firstValue(
+                    raw,
+                    [
+                        "last_seen",
+                        "lastSeen",
+                        "lastSeenAt",
+                        "last_seen_at"
+                    ],
+                    ""
+                )
+            };
         }
 
         normalizeMessage(raw) {
+            if (!raw || typeof raw !== "object") {
+                return {
+                    id: 0,
+                    roomId: "",
+                    userId: "",
+                    username: "",
+                    message: "",
+                    createdAt: 0
+                };
+            }
+
             return {
-                id: Number(raw.id || 0),
+                id: Number(
+                    this.firstValue(
+                        raw,
+                        [
+                            "id",
+                            "messageId",
+                            "message_id"
+                        ],
+                        0
+                    )
+                ) || 0,
 
-                roomId:
-                    raw.room_id ||
-                    raw.roomId ||
-                    "",
+                roomId: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "room_id",
+                            "roomId"
+                        ]
+                    )
+                ),
 
-                userId:
-                    raw.user_id ||
-                    raw.userId ||
-                    "",
+                userId: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "user_id",
+                            "userId",
+                            "sender_id",
+                            "senderId"
+                        ]
+                    )
+                ),
 
-                username:
-                    raw.username ||
-                    "",
+                username: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "username",
+                            "sender",
+                            "senderUsername",
+                            "sender_username"
+                        ]
+                    )
+                ),
 
-                message:
-                    raw.message ||
-                    "",
+                message: this.cleanString(
+                    this.firstValue(
+                        raw,
+                        [
+                            "message",
+                            "text",
+                            "content"
+                        ]
+                    )
+                ),
 
-                createdAt:
-                    raw.created_at ||
-                    raw.createdAt ||
+                createdAt: this.firstValue(
+                    raw,
+                    [
+                        "created_at",
+                        "createdAt",
+                        "timestamp"
+                    ],
                     0
+                )
             };
+        }
+
+        extractRoom(data) {
+            if (!data || typeof data !== "object") {
+                return null;
+            }
+
+            /*
+             * Accept all of these common formats:
+             *
+             * { room: {...} }
+             * { data: { room: {...} } }
+             * { id, code, creatorId }
+             * { room_id, room_code, creator_id }
+             */
+
+            if (data.room) {
+                return this.normalizeRoom(data.room);
+            }
+
+            if (
+                data.data &&
+                typeof data.data === "object"
+            ) {
+                if (data.data.room) {
+                    return this.normalizeRoom(
+                        data.data.room
+                    );
+                }
+
+                return this.normalizeRoom(
+                    data.data
+                );
+            }
+
+            return this.normalizeRoom(data);
+        }
+
+        applyRoom(room) {
+            if (!room) {
+                return false;
+            }
+
+            if (room.id) {
+                this.roomId = room.id;
+            }
+
+            if (room.code) {
+                this.roomCode =
+                    room.code.toUpperCase();
+            }
+
+            if (room.creatorId) {
+                this.creatorId =
+                    room.creatorId;
+            }
+
+            return !!(
+                this.roomId ||
+                this.roomCode
+            );
         }
 
         getPlayer(index) {
             const number =
-                Math.floor(Number(index));
+                Math.floor(
+                    Number(index)
+                );
 
             if (
                 !Number.isFinite(number) ||
@@ -151,7 +338,9 @@
 
         getMessage(index) {
             const number =
-                Math.floor(Number(index));
+                Math.floor(
+                    Number(index)
+                );
 
             if (
                 !Number.isFinite(number) ||
@@ -165,7 +354,137 @@
         }
 
         /* =====================================================
-           BLOCK INFORMATION
+           HTTP
+           ===================================================== */
+
+        async request(path, options = {}) {
+            const base =
+                this.apiUrl
+                    .replace(/\/+$/, "");
+
+            const cleanPath =
+                String(path || "").startsWith("/")
+                    ? path
+                    : "/" + path;
+
+            const headers = {
+                "Accept": "application/json",
+                "Content-Type":
+                    "application/json"
+            };
+
+            if (this.token) {
+                headers.Authorization =
+                    "Bearer " + this.token;
+            }
+
+            let response;
+
+            try {
+                response = await fetch(
+                    base + cleanPath,
+                    {
+                        ...options,
+                        headers: {
+                            ...headers,
+                            ...(options.headers || {})
+                        }
+                    }
+                );
+            } catch (error) {
+                const message =
+                    "Could not connect to multiplayer server: " +
+                    (
+                        error &&
+                        error.message
+                            ? error.message
+                            : "Network error"
+                    );
+
+                this.setError(message);
+                throw new Error(message);
+            }
+
+            const text =
+                await response.text();
+
+            let data = null;
+
+            if (text.trim()) {
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = null;
+                }
+            }
+
+            if (!response.ok) {
+                let message =
+                    "Server returned HTTP " +
+                    response.status;
+
+                if (data && data.error) {
+                    message =
+                        String(data.error);
+                } else if (text.trim()) {
+                    message = text.trim();
+                }
+
+                this.setError(message);
+
+                throw new Error(message);
+            }
+
+            if (
+                data &&
+                (
+                    data.success === false ||
+                    data.ok === false
+                )
+            ) {
+                const message =
+                    data.error ||
+                    data.message ||
+                    "Multiplayer request failed";
+
+                this.setError(message);
+
+                throw new Error(
+                    String(message)
+                );
+            }
+
+            this.clearError();
+
+            return data || {};
+        }
+
+        requireLogin() {
+            if (!this.token) {
+                this.setError(
+                    "Set a multiplayer token first"
+                );
+
+                return false;
+            }
+
+            return true;
+        }
+
+        requireRoom() {
+            if (!this.roomId) {
+                this.setError(
+                    "You are not in a multiplayer room"
+                );
+
+                return false;
+            }
+
+            return true;
+        }
+
+        /* =====================================================
+           BLOCKS
            ===================================================== */
 
         getInfo() {
@@ -179,10 +498,6 @@
                 color3: "#2E5DA8",
 
                 blocks: [
-
-                    /* =========================================
-                       API
-                       ========================================= */
 
                     {
                         opcode: "setApiUrl",
@@ -207,10 +522,6 @@
                         text:
                             "multiplayer API URL"
                     },
-
-                    /* =========================================
-                       AUTHENTICATION
-                       ========================================= */
 
                     {
                         opcode: "setToken",
@@ -283,10 +594,6 @@
                         text:
                             "my user ID"
                     },
-
-                    /* =========================================
-                       ROOMS
-                       ========================================= */
 
                     {
                         opcode: "createRoom",
@@ -376,10 +683,6 @@
                             "room creator ID"
                     },
 
-                    /* =========================================
-                       PLAYERS
-                       ========================================= */
-
                     {
                         opcode: "refreshPlayers",
                         blockType:
@@ -463,10 +766,6 @@
                             }
                         }
                     },
-
-                    /* =========================================
-                       CHAT
-                       ========================================= */
 
                     {
                         opcode: "sendMessage",
@@ -623,10 +922,6 @@
                             "clear local chat messages"
                     },
 
-                    /* =========================================
-                       HEARTBEAT
-                       ========================================= */
-
                     {
                         opcode: "heartbeat",
                         blockType:
@@ -659,10 +954,6 @@
                             "stop automatic room heartbeat"
                     },
 
-                    /* =========================================
-                       AUTOMATIC CHAT
-                       ========================================= */
-
                     {
                         opcode: "startAutoMessages",
                         blockType:
@@ -678,10 +969,6 @@
                         text:
                             "stop automatic chat updates"
                     },
-
-                    /* =========================================
-                       STATUS
-                       ========================================= */
 
                     {
                         opcode: "lastError",
@@ -716,12 +1003,11 @@
 
         setApiUrl(args) {
             this.apiUrl =
-                String(args.URL || "")
-                    .trim()
+                this.cleanString(args.URL)
                     .replace(/\/+$/, "");
 
             this.setStatus(
-                "API URL changed"
+                "Multiplayer API URL changed"
             );
         }
 
@@ -735,19 +1021,18 @@
 
         setToken(args) {
             this.token =
-                String(args.TOKEN || "")
-                    .trim();
+                this.cleanString(args.TOKEN);
 
             this.setStatus(
                 this.token
-                    ? "Token set"
-                    : "Token cleared"
+                    ? "Multiplayer token set"
+                    : "Multiplayer token cleared"
             );
         }
 
         setUsername(args) {
             this.username =
-                String(args.USERNAME || "");
+                this.cleanString(args.USERNAME);
 
             this.setStatus(
                 "Username set"
@@ -756,7 +1041,7 @@
 
         setUserId(args) {
             this.userId =
-                String(args.ID || "");
+                this.cleanString(args.ID);
 
             this.setStatus(
                 "User ID set"
@@ -780,43 +1065,77 @@
            ===================================================== */
 
         async createRoom() {
+            this.clearError();
+
             if (!this.requireLogin()) {
                 return;
             }
 
             try {
+                /*
+                 * Clear the old room before creating another one.
+                 */
+                this.roomId = "";
+                this.roomCode = "";
+                this.creatorId = "";
+                this.players = [];
+                this.messages = [];
+                this.lastMessageId = 0;
+
+                this.setStatus(
+                    "Creating multiplayer room..."
+                );
+
                 const data =
                     await this.request(
                         "/rooms",
                         {
-                            method: "POST"
+                            method: "POST",
+                            body: JSON.stringify({})
                         }
                     );
 
                 const room =
-                    data.room || {};
+                    this.extractRoom(data);
 
-                this.roomId =
-                    room.id || "";
+                if (!this.applyRoom(room)) {
+                    this.setError(
+                        "Server created a room but did not return a room ID or room code"
+                    );
 
-                this.roomCode =
-                    room.code || "";
-
-                this.creatorId =
-                    room.creatorId || "";
+                    return;
+                }
 
                 this.players = [];
                 this.messages = [];
                 this.lastMessageId = 0;
 
                 this.setStatus(
-                    "Created room " +
                     this.roomCode
+                        ? "Created room " +
+                          this.roomCode
+                        : "Room created"
                 );
 
-                await this.refreshPlayers();
-            } catch {
-                // Error already stored.
+                /*
+                 * Get the initial player list.
+                 */
+                if (this.roomId) {
+                    await this.refreshPlayers();
+                }
+
+                /*
+                 * Start keeping the creator alive.
+                 */
+                this.startAutoHeartbeat();
+
+            } catch (error) {
+                if (!this.lastError) {
+                    this.setError(
+                        error.message ||
+                        "Could not create room"
+                    );
+                }
             }
         }
 
@@ -841,14 +1160,16 @@
            ===================================================== */
 
         async joinRoom(args) {
+            this.clearError();
+
             if (!this.requireLogin()) {
                 return;
             }
 
             const code =
-                String(args.CODE || "")
-                    .trim()
-                    .toUpperCase();
+                this.cleanString(
+                    args.CODE
+                ).toUpperCase();
 
             if (!code) {
                 this.setError(
@@ -859,6 +1180,12 @@
             }
 
             try {
+                this.setStatus(
+                    "Joining room " +
+                    code +
+                    "..."
+                );
+
                 const data =
                     await this.request(
                         "/rooms/join",
@@ -871,16 +1198,24 @@
                     );
 
                 const room =
-                    data.room || {};
+                    this.extractRoom(data);
 
-                this.roomId =
-                    room.id || "";
+                /*
+                 * Some servers return only the room
+                 * code on join. Preserve the entered
+                 * code if necessary.
+                 */
+                if (!room.code) {
+                    room.code = code;
+                }
 
-                this.roomCode =
-                    room.code || "";
+                if (!this.applyRoom(room)) {
+                    this.setError(
+                        "Join succeeded but the server did not return a room ID"
+                    );
 
-                this.creatorId =
-                    room.creatorId || "";
+                    return;
+                }
 
                 this.players = [];
                 this.messages = [];
@@ -893,8 +1228,16 @@
 
                 await this.refreshPlayers();
                 await this.refreshMessages();
-            } catch {
-                // Error already stored.
+
+                this.startAutoHeartbeat();
+
+            } catch (error) {
+                if (!this.lastError) {
+                    this.setError(
+                        error.message ||
+                        "Could not join room"
+                    );
+                }
             }
         }
 
@@ -903,10 +1246,12 @@
         }
 
         /* =====================================================
-           LEAVE ROOM
+           LEAVE
            ===================================================== */
 
         async leaveRoom() {
+            this.clearError();
+
             if (!this.roomId) {
                 this.setError(
                     "You are not in a room"
@@ -928,31 +1273,41 @@
                     {
                         method: "POST",
                         body: JSON.stringify({
-                            roomId:
-                                oldRoomId
+                            roomId: oldRoomId,
+                            room_id: oldRoomId
                         })
                     }
                 );
 
-                this.roomId = "";
-                this.roomCode = "";
-                this.creatorId = "";
-
-                this.players = [];
-                this.messages = [];
-
-                this.lastMessageId = 0;
-
-                this.setStatus(
-                    "Left room"
+            } catch (error) {
+                /*
+                 * Clear local state even if the server
+                 * reports that the player is already gone.
+                 */
+                this.setError(
+                    error.message ||
+                    "Could not leave room"
                 );
-            } catch {
-                // Error already stored.
             }
+
+            this.roomId = "";
+            this.roomCode = "";
+            this.creatorId = "";
+
+            this.players = [];
+            this.messages = [];
+            this.lastMessageId = 0;
+
+            this.stopAutoHeartbeat();
+            this.stopAutoMessages();
+
+            this.setStatus(
+                "Left multiplayer room"
+            );
         }
 
         inRoom() {
-            return this.roomId !== "";
+            return !!this.roomId;
         }
 
         /* =====================================================
@@ -964,11 +1319,7 @@
                 return;
             }
 
-            if (!this.roomId) {
-                this.setError(
-                    "You are not in a room"
-                );
-
+            if (!this.requireRoom()) {
                 return;
             }
 
@@ -984,28 +1335,68 @@
                         }
                     );
 
-                this.players =
-                    data.players || [];
+                let rawPlayers = [];
 
-                if (data.room) {
-                    this.roomId =
-                        data.room.id ||
-                        this.roomId;
-
-                    this.roomCode =
-                        data.room.code ||
-                        this.roomCode;
-
-                    this.creatorId =
-                        data.room.creatorId ||
-                        this.creatorId;
+                if (
+                    Array.isArray(
+                        data.players
+                    )
+                ) {
+                    rawPlayers =
+                        data.players;
+                } else if (
+                    data.room &&
+                    Array.isArray(
+                        data.room.players
+                    )
+                ) {
+                    rawPlayers =
+                        data.room.players;
+                } else if (
+                    data.data &&
+                    Array.isArray(
+                        data.data.players
+                    )
+                ) {
+                    rawPlayers =
+                        data.data.players;
+                } else if (
+                    data.data &&
+                    data.data.room &&
+                    Array.isArray(
+                        data.data.room.players
+                    )
+                ) {
+                    rawPlayers =
+                        data.data.room.players;
                 }
 
+                this.players =
+                    rawPlayers.map(
+                        player =>
+                            this.normalizePlayer(
+                                player
+                            )
+                    );
+
+                const room =
+                    this.extractRoom(data);
+
+                this.applyRoom(room);
+
                 this.setStatus(
-                    "Player list updated"
+                    "Player list updated (" +
+                    this.players.length +
+                    " player(s))"
                 );
-            } catch {
-                // Error already stored.
+
+            } catch (error) {
+                if (!this.lastError) {
+                    this.setError(
+                        error.message ||
+                        "Could not refresh players"
+                    );
+                }
             }
         }
 
@@ -1024,7 +1415,7 @@
                 );
 
             return player
-                ? player.username || ""
+                ? player.username
                 : "";
         }
 
@@ -1035,7 +1426,7 @@
                 );
 
             return player
-                ? player.id || ""
+                ? player.id
                 : "";
         }
 
@@ -1046,7 +1437,7 @@
                 );
 
             return player
-                ? player.joined_at || ""
+                ? player.joined_at
                 : "";
         }
 
@@ -1057,7 +1448,7 @@
                 );
 
             return player
-                ? player.last_seen || ""
+                ? player.last_seen
                 : "";
         }
 
@@ -1066,21 +1457,20 @@
            ===================================================== */
 
         async sendMessage(args) {
+            this.clearError();
+
             if (!this.requireLogin()) {
                 return;
             }
 
-            if (!this.roomId) {
-                this.setError(
-                    "You are not in a room"
-                );
-
+            if (!this.requireRoom()) {
                 return;
             }
 
             const message =
-                String(args.MESSAGE || "")
-                    .trim();
+                this.cleanString(
+                    args.MESSAGE
+                );
 
             if (!message) {
                 this.setError(
@@ -1107,26 +1497,34 @@
                             body: JSON.stringify({
                                 roomId:
                                     this.roomId,
+                                room_id:
+                                    this.roomId,
                                 message:
                                     message
                             })
                         }
                     );
 
-                if (data.message) {
+                const rawMessage =
+                    data.message ||
+                    (
+                        data.data &&
+                        data.data.message
+                    );
+
+                if (rawMessage) {
                     const msg =
                         this.normalizeMessage(
-                            data.message
+                            rawMessage
                         );
 
-                    const exists =
-                        this.messages.some(
+                    if (
+                        !this.messages.some(
                             existing =>
                                 existing.id ===
                                 msg.id
-                        );
-
-                    if (!exists) {
+                        )
+                    ) {
                         this.messages.push(
                             msg
                         );
@@ -1144,8 +1542,14 @@
                 this.setStatus(
                     "Message sent"
                 );
-            } catch {
-                // Error already stored.
+
+            } catch (error) {
+                if (!this.lastError) {
+                    this.setError(
+                        error.message ||
+                        "Could not send message"
+                    );
+                }
             }
         }
 
@@ -1154,7 +1558,7 @@
         }
 
         /* =====================================================
-           GET CHAT MESSAGES
+           GET MESSAGES
            ===================================================== */
 
         async refreshMessages() {
@@ -1162,11 +1566,7 @@
                 return;
             }
 
-            if (!this.roomId) {
-                this.setError(
-                    "You are not in a room"
-                );
-
+            if (!this.requireRoom()) {
                 return;
             }
 
@@ -1174,6 +1574,10 @@
                 const path =
                     "/rooms/messages" +
                     "?roomId=" +
+                    encodeURIComponent(
+                        this.roomId
+                    ) +
+                    "&room_id=" +
                     encodeURIComponent(
                         this.roomId
                     ) +
@@ -1190,8 +1594,24 @@
                         }
                     );
 
-                const incoming =
-                    data.messages || [];
+                let incoming = [];
+
+                if (
+                    Array.isArray(
+                        data.messages
+                    )
+                ) {
+                    incoming =
+                        data.messages;
+                } else if (
+                    data.data &&
+                    Array.isArray(
+                        data.data.messages
+                    )
+                ) {
+                    incoming =
+                        data.data.messages;
+                }
 
                 for (
                     const raw of incoming
@@ -1201,14 +1621,13 @@
                             raw
                         );
 
-                    const exists =
-                        this.messages.some(
+                    if (
+                        !this.messages.some(
                             existing =>
                                 existing.id ===
                                 msg.id
-                        );
-
-                    if (!exists) {
+                        )
+                    ) {
                         this.messages.push(
                             msg
                         );
@@ -1223,10 +1642,6 @@
                     }
                 }
 
-                /*
-                 * Prevent the browser from keeping
-                 * an unlimited local chat history.
-                 */
                 if (
                     this.messages.length >
                     500
@@ -1241,8 +1656,14 @@
                     incoming.length +
                     " new message(s)"
                 );
-            } catch {
-                // Error already stored.
+
+            } catch (error) {
+                if (!this.lastError) {
+                    this.setError(
+                        error.message ||
+                        "Could not get messages"
+                    );
+                }
             }
         }
 
@@ -1364,6 +1785,8 @@
                         method: "POST",
                         body: JSON.stringify({
                             roomId:
+                                this.roomId,
+                            room_id:
                                 this.roomId
                         })
                     }
@@ -1372,8 +1795,14 @@
                 this.setStatus(
                     "Room heartbeat sent"
                 );
-            } catch {
-                // Error already stored.
+
+            } catch (error) {
+                if (!this.lastError) {
+                    this.setError(
+                        error.message ||
+                        "Heartbeat failed"
+                    );
+                }
             }
         }
 
@@ -1390,13 +1819,6 @@
 
             this.autoHeartbeat = true;
 
-            /*
-             * The backend removes players after
-             * 30 seconds of inactivity.
-             *
-             * We send a heartbeat every 10 seconds.
-             */
-
             this.heartbeatTimer =
                 setInterval(
                     () => {
@@ -1412,7 +1834,7 @@
                 );
 
             this.setStatus(
-                "Automatic heartbeat started"
+                "Automatic room heartbeat started"
             );
 
             this.heartbeat();
@@ -1421,35 +1843,27 @@
         stopAutoHeartbeat() {
             this.autoHeartbeat = false;
 
-            if (
-                this.heartbeatTimer
-            ) {
+            if (this.heartbeatTimer) {
                 clearInterval(
                     this.heartbeatTimer
                 );
 
-                this.heartbeatTimer =
-                    null;
+                this.heartbeatTimer = null;
             }
 
             this.setStatus(
-                "Automatic heartbeat stopped"
+                "Automatic room heartbeat stopped"
             );
         }
 
         /* =====================================================
-           AUTOMATIC CHAT UPDATES
+           AUTOMATIC MESSAGES
            ===================================================== */
 
         startAutoMessages() {
             this.stopAutoMessages();
 
             this.autoMessages = true;
-
-            /*
-             * Check for new messages every
-             * 1.5 seconds.
-             */
 
             this.messageTimer =
                 setInterval(
@@ -1475,15 +1889,12 @@
         stopAutoMessages() {
             this.autoMessages = false;
 
-            if (
-                this.messageTimer
-            ) {
+            if (this.messageTimer) {
                 clearInterval(
                     this.messageTimer
                 );
 
-                this.messageTimer =
-                    null;
+                this.messageTimer = null;
             }
 
             this.setStatus(
@@ -1502,13 +1913,10 @@
         lastStatus() {
             return this.lastStatus;
         }
-
-        clearError() {
-            this.lastError = "";
-        }
     }
 
     Scratch.extensions.register(
         new MultiplayerRooms()
     );
+
 })(Scratch);
